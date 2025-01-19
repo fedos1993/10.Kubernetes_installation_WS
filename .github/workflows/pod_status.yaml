@@ -1,0 +1,24 @@
+name: Check pod status
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  Check pod status:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checking the repository
+        uses: actions/checkout@v4
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo -e "Host *\n  StrictHostKeyChecking no" > ~/.ssh/config
+      - name: Connect SSH
+        run: |
+          ssh ${{ K8S_USER }}@${{ K8S_HOST }} -o ProxyCommand="ssh -W %h:%p -q ${{ PROXY_USER }}@${{ PROXY_HOST }} -p ${{ PROXY_PORT }}" \
+          "kubectl get pods -A"
