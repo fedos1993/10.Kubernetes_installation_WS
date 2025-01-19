@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  Check pod status:
+  Check_pod_status:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,5 +20,5 @@ jobs:
           echo -e "Host *\n  StrictHostKeyChecking no" > ~/.ssh/config
       - name: Connect SSH
         run: |
-          ssh ${{ K8S_USER }}@${{ K8S_HOST }} -o ProxyCommand="ssh -W %h:%p -q ${{ PROXY_USER }}@${{ PROXY_HOST }} -p ${{ PROXY_PORT }}" \
+          ssh ${{ secrets.K8S_USER }}@${{ secrets.K8S_HOST }} -o ProxyCommand="ssh -W %h:%p -q ${{ secrets.PROXY_USER }}@${{ secrets.PROXY_HOST }} -p ${{ secrets.PROXY_PORT }}" \
           "kubectl get pods -A"
