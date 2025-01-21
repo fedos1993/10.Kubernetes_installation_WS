@@ -39,14 +39,15 @@ jobs:
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_TITLE: "There are problematic pods"
           SLACK_CUSTOM_PAYLOAD: |
             {
-              "text": "Warning: The following pods are not in Running or Succeeded state:",
+              "username": "Cluster monitoring",
+              "icon_emoji": ":satellite_antenna:",
               "attachments": [
                 {
-                  "text": "${{ steps.pod_status.outputs.failed_pods_content }}",
                   "color": "danger",
+                  "title": "Problematic Pods Detected :dart:",
+                  "text": "```${{ steps.pod_status.outputs.failed_pods_content }}```",
                   "mrkdwn_in": ["text"]
                 }
               ]
