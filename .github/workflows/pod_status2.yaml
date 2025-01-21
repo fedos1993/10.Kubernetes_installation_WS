@@ -1,0 +1,52 @@
+name: Check pod status
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  Check_pod_status:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checking the repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo -e "Host *\n  StrictHostKeyChecking no" > ~/.ssh/config
+
+      - name: Connect SSH and check pod status
+        id: pod_status
+        run: |
+          FAILED_PODS=$(ssh ${{ secrets.K8S_USER }}@${{ secrets.K8S_HOST }} -o ProxyCommand="ssh -W %h:%p -q ${{ secrets.PROXY_USER }}@${{ secrets.PROXY_HOST }} -p ${{ secrets.PROXY_PORT }}" \
+          "kubectl get pods -A --field-selector status.phase!=Running,status.phase!=Succeeded")
+
+          if [ -n FAILED_PODS ]; then
+            echo "failed_pods=true" >> $GITHUB_OUTPUT
+            echo "failed_pods_content" >> $GITHUB_OUTPUT
+          else
+            echo "failed_pods=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Slack Notification
+        if: steps.pod_status.outputs.failed_pods == 'true'
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_TITLE: "There are problematic pods"
+          SLACK_CUSTOM_PAYLOAD: |
+            {
+              "text": "Warning: The following pods are not in Running or Succeeded state:",
+              "attachments": [
+                {
+                  "text": "${{ steps.pod_status.outputs.failed_pods_content }}",
+                  "color": "danger",
+                  "mrkdwn_in": ["text"]
+                }
+              ]
+            }
