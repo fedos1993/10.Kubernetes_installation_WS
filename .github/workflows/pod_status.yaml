@@ -32,6 +32,10 @@ jobs:
             echo "failed_pods=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Debug pod status
+        run: |
+          echo: "FAILED_PODS: ${{ steps.pod_status.outputs.failed_pods_content }}
+
       - name: Slack Notification
         if: steps.pod_status.outputs.failed_pods == 'true'
         uses: rtCamp/action-slack-notify@v2
