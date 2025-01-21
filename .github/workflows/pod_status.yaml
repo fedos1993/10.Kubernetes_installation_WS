@@ -1,9 +1,7 @@
 name: Check pod status
 
 on:
-  push:
-    branches:
-      - master
+  workflow_dispatch:
 
 jobs:
   Check_pod_status:
@@ -23,30 +21,31 @@ jobs:
       - name: Connect SSH and check pod status
         id: pod_status
         run: |
-          ssh ${{ secrets.K8S_USER }}@${{ secrets.K8S_HOST }} -o ProxyCommand="ssh -W %h:%p -q ${{ secrets.PROXY_USER }}@${{ secrets.PROXY_HOST }} -p ${{ secrets.PROXY_PORT }}" \
-          kubectl get pods -A --field-selector status.phase!=Running,status.phase!=Succeeded > failed_pods.txt
-          
-          FAILED_PODS_CONTENT=$(cat failed_pods.txt)
+          FAILED_PODS=$(ssh ${{ secrets.K8S_USER }}@${{ secrets.K8S_HOST }} -o ProxyCommand="ssh -W %h:%p -q ${{ secrets.PROXY_USER }}@${{ secrets.PROXY_HOST }} -p ${{ secrets.PROXY_PORT }}" \
+          "kubectl get pods -A --field-selector status.phase!=Running,status.phase!=Succeeded")
 
-          if [ -s failed_pods.txt ]; then
-            echo "::set-output name=failed_pods::true"
+          if [ -n "$FAILED_PODS" ]; then
+            SAFE_FAILED_PODS=$(echo "$FAILED_PODS" | awk '{printf "%s\\n", $0}')
+            echo "failed_pods=true" >> $GITHUB_OUTPUT
+            echo "failed_pods_content"= $SAFE_FAILED_PODS >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=failed_pods::false"
+            echo "failed_pods=false" >> $GITHUB_OUTPUT
           fi
-          
+
       - name: Slack Notification
         if: steps.pod_status.outputs.failed_pods == 'true'
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_TITLE: "There are problematic pods"
           SLACK_CUSTOM_PAYLOAD: |
             {
-              "text": "Warning: The following pods are not in Running or Succeeded state:",
+              "username": "Cluster monitoring",
+              "icon_emoji": ":satellite_antenna:",
               "attachments": [
                 {
-                  "text": "${{ steps.pod_status.outputs.FAILED_PODS_CONTENT }}",
                   "color": "danger",
+                  "title": "Problematic Pods Detected :dart:",
+                  "text": "```${{ steps.pod_status.outputs.failed_pods_content }}```",
                   "mrkdwn_in": ["text"]
                 }
               ]
