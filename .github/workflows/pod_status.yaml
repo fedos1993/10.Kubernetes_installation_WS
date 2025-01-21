@@ -34,7 +34,7 @@ jobs:
 
       - name: Debug pod status
         run: |
-          if [ -n "${{ steps.pod_status.outputs.failed_pods_content}}" ]; then
+          if [ -n "${{ steps.pod_status.outputs.failed_pods_content }}" ]; then
             echo "FAILED_PODS: ${{ steps.pod_status.outputs.failed_pods_content }}"
           else
             echo "No failed pods found"
