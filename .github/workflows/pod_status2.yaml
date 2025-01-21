@@ -27,8 +27,9 @@ jobs:
           "kubectl get pods -A --field-selector status.phase!=Running,status.phase!=Succeeded")
 
           if [ -n FAILED_PODS ]; then
+            SAFE_FAILED_PODS=$(echo "$FAILED_PODS" | awk '{printf "%s\\n", $0}')
             echo "failed_pods=true" >> $GITHUB_OUTPUT
-            echo "failed_pods_content" >> $GITHUB_OUTPUT
+            echo "failed_pods_content"= $SAFE_FAILED_PODS >> $GITHUB_OUTPUT
           else
             echo "failed_pods=false" >> $GITHUB_OUTPUT
           fi
